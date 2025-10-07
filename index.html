@@ -237,6 +237,33 @@
     <div class="api-header-section">
         <h1>🛍️ Product API Testing Interface</h1>
         <p>Test all CRUD operations with live API calls</p>
+        
+        <!-- API URL Configuration -->
+        <div style="margin-top: 30px; background: rgba(255,255,255,0.15); padding: 20px; border-radius: 10px; backdrop-filter: blur(10px);">
+            <label for="apiBaseUrl" style="display: block; margin-bottom: 10px; font-size: 1.1rem; font-weight: 600; text-align: left;">
+                🌐 API Base URL:
+            </label>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <input 
+                    type="text" 
+                    id="apiBaseUrl" 
+                    value="http://localhost:3000" 
+                    placeholder="Enter API URL (e.g., http://localhost:3000)"
+                    style="flex: 1; min-width: 250px; padding: 12px 15px; border: 2px solid rgba(255,255,255,0.3); border-radius: 8px; font-size: 1rem; background: rgba(255,255,255,0.9); color: #333; font-family: 'Courier New', monospace;"
+                >
+                <button 
+                    onclick="updateApiUrl()" 
+                    style="padding: 12px 25px; background: white; color: #667eea; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"
+                    onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)'"
+                    onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)'"
+                >
+                    Update URL
+                </button>
+            </div>
+            <div id="urlStatus" style="margin-top: 10px; font-size: 0.9rem; text-align: left; display: none;">
+                <span id="urlStatusText"></span>
+            </div>
+        </div>
     </div>
 
     <!-- SAMPLE OUTPUT SECTION -->
@@ -508,7 +535,35 @@
 </div>
 
 <script>
-    const API_URL = 'http://localhost:3000';
+    let API_URL = 'http://localhost:3000';
+
+    function updateApiUrl() {
+        const urlInput = document.getElementById('apiBaseUrl');
+        const newUrl = urlInput.value.trim();
+        const statusDiv = document.getElementById('urlStatus');
+        const statusText = document.getElementById('urlStatusText');
+        
+        if (!newUrl) {
+            statusDiv.style.display = 'block';
+            statusDiv.style.color = '#ff6b6b';
+            statusText.textContent = '❌ Please enter a valid URL';
+            return;
+        }
+        
+        // Remove trailing slash if present
+        API_URL = newUrl.replace(/\/$/, '');
+        
+        statusDiv.style.display = 'block';
+        statusDiv.style.color = '#51cf66';
+        statusText.textContent = `✅ API URL updated to: ${API_URL}`;
+        
+        // Hide status after 3 seconds
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 3000);
+        
+        console.log('API URL updated to:', API_URL);
+    }
 
     function showResponse(elementId, data, isError = false) {
         const responseBox = document.getElementById(`response-${elementId}`);
