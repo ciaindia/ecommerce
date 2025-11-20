@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Commerce Platform - Product Requirements Document</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .toc {
+            background: #f8f9fa;
+            padding: 30px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .toc h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .toc ul {
+            list-style: none;
+        }
+        
+        .toc ul li {
+            padding: 8px 0;
+        }
+        
+        .toc ul li a {
+            color: #333;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .toc ul li a:hover {
+            color: #667eea;
+        }
+        
+        .section {
+            padding: 40px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .section h3 {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        
+        .section h4 {
+            color: #555;
+            font-size: 1.2em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .sprint-card {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+            border-radius: 5px;
+        }
+        
+        .sprint-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .sprint-card ul {
+            margin-left: 20px;
+        }
+        
+        .sprint-card li {
+            margin: 8px 0;
+        }
+        
+        .code-block {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .code-block pre {
+            margin: 0;
+        }
+        
+        .code-header {
+            background: #21252b;
+            color: #61dafb;
+            padding: 10px 20px;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        
+        .mermaid-container {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .wireframe {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+        }
+        
+        .wireframe img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .wireframe-placeholder {
+            background: white;
+            border: 2px dashed #ccc;
+            padding: 40px;
+            text-align: center;
+            color: #999;
+            border-radius: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        table th, table td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #e0e0e0;
+        }
+        
+        table th {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        
+        table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .tech-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .tech-item h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .api-endpoint {
+            background: #e3f2fd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        
+        .method {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .get { background: #4caf50; color: white; }
+        .post { background: #2196f3; color: white; }
+        .put { background: #ff9800; color: white; }
+        .delete { background: #f44336; color: white; }
+        
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        @media print {
+            .section { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛒 E-Commerce Platform</h1>
+            <p>Product Requirements Document (PRD)</p>
+            <p style="font-size: 0.9em; margin-top: 10px;">Multi-Vendor Marketplace with Admin Approval System</p>
+        </header>
+        
+        <div class="toc">
+            <h2>📋 Table of Contents</h2>
+            <ul>
+                <li><a href="#overview">1. Project Overview</a></li>
+                <li><a href="#tech-stack">2. Technology Stack</a></li>
+                <li><a href="#architecture">3. System Architecture</a></li>
+                <li><a href="#user-roles">4. User Roles & Permissions</a></li>
+                <li><a href="#sprints">5. Sprint Planning</a></li>
+                <li><a href="#features">6. Feature Specifications</a></li>
+                <li><a href="#api">7. API Documentation</a></li>
+                <li><a href="#database">8. Database Schema</a></li>
+                <li><a href="#code">9. Code Implementation</a></li>
+                <li><a href="#wireframes">10. Wireframes</a></li>
+            </ul>
+        </div>
+        
+        <div id="overview" class="section">
+            <h2>1. Project Overview</h2>
+            <p>A multi-vendor e-commerce marketplace where sellers can register, get approved by admin, manage their products, and customers can browse and purchase products. The platform implements a three-tier user system: Admin, Seller, and Customer.</p>
+            
+            <h3>Key Objectives</h3>
+            <ul>
+                <li>Enable seller registration with admin approval workflow</li>
+                <li>Provide comprehensive product management for sellers</li>
+                <li>Offer seamless shopping experience for customers</li>
+                <li>Implement secure authentication and authorization</li>
+                <li>Maintain inventory and order management</li>
+            </ul>
+        </div>
+        
+        <div id="tech-stack" class="section">
+            <h2>2. Technology Stack</h2>
+            <div class="tech-stack">
+                <div class="tech-item">
+                    <h4>Frontend</h4>
+                    <ul>
+                        <li>React.js 18+</li>
+                        <li>Axios for API calls</li>
+                        <li>React Router</li>
+                        <li>Context API / Redux</li>
+                    </ul>
+                </div>
+                <div class="tech-item">
+                    <h4>Backend (Choose One)</h4>
+                    <ul>
+                        <li>Node.js + Express</li>
+                        <li>Java Spring Boot</li>
+                        <li>Python Flask</li>
+                    </ul>
+                </div>
+                <div class="tech-item">
+                    <h4>Database</h4>
+                    <ul>
+                        <li>MySQL 8.0+</li>
+                        <li>Sequelize / TypeORM</li>
+                    </ul>
+                </div>
+                <div class="tech-item">
+                    <h4>Authentication</h4>
+                    <ul>
+                        <li>JWT Tokens</li>
+                        <li>bcrypt for passwords</li>
+                        <li>Email verification</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div id="architecture" class="section">
+            <h2>3. System Architecture</h2>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                graph TB
+                    A[Client Browser] -->|HTTPS| B[React Frontend]
+                    B -->|API Calls| C[Backend API Server]
+                    C -->|Auth| D[JWT Auth Middleware]
+                    C -->|Query| E[(MySQL Database)]
+                    C -->|Email| F[Email Service]
+                    
+                    subgraph Frontend
+                    B
+                    end
+                    
+                    subgraph Backend
+                    C
+                    D
+                    end
+                    
+                    subgraph Data Layer
+                    E
+                    end
+                    
+                    style B fill:#61dafb
+                    style C fill:#68a063
+                    style E fill:#00758f
+                </div>
+            </div>
+            
+            <h3>User Flow Diagram</h3>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                flowchart TD
+                    Start([User Visits Site]) --> Role{User Role?}
+                    
+                    Role -->|New User| Register[Register Account]
+                    Register --> UserType{Account Type?}
+                    UserType -->|Seller| SellerReg[Seller Registration]
+                    UserType -->|Customer| CustomerReg[Customer Registration]
+                    
+                    SellerReg --> Email1[Email Verification]
+                    Email1 --> Pending[Pending Admin Approval]
+                    Pending --> AdminReview{Admin Decision}
+                    AdminReview -->|Approved| SellerDash[Seller Dashboard]
+                    AdminReview -->|Rejected| Notify[Notification Sent]
+                    
+                    CustomerReg --> Email2[Email Verification]
+                    Email2 --> CustomerDash[Customer Dashboard]
+                    
+                    Role -->|Existing User| Login[Login]
+                    Login --> Auth{Authenticate}
+                    Auth -->|Admin| AdminDash[Admin Dashboard]
+                    Auth -->|Seller| CheckApproval{Approved?}
+                    CheckApproval -->|Yes| SellerDash
+                    CheckApproval -->|No| Pending
+                    Auth -->|Customer| CustomerDash
+                    
+                    SellerDash --> ManageProducts[Manage Products]
+                    CustomerDash --> BrowseProducts[Browse Products]
+                    BrowseProducts --> AddCart[Add to Cart]
+                    AddCart --> Checkout[Checkout]
+                    
+                    AdminDash --> ManageSellers[Manage Sellers]
+                    AdminDash --> ViewOrders[View All Orders]
+                    
+                    style Start fill:#e1f5ff
+                    style AdminDash fill:#ffebee
+                    style SellerDash fill:#fff3e0
+                    style CustomerDash fill:#e8f5e9
+                </div>
+            </div>
+        </div>
+        
+        <div id="user-roles" class="section">
+            <h2>4. User Roles & Permissions</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>Permissions</th>
+                        <th>Access Level</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Admin</strong></td>
+                        <td>
+                            • View all sellers<br>
+                            • Approve/Reject seller accounts<br>
+                            • View all products<br>
+                            • View all orders<br>
+                            • Manage system settings
+                        </td>
+                        <td>Full System Access</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Seller</strong></td>
+                        <td>
+                            • Create/Update/Delete own products<br>
+                            • Manage inventory<br>
+                            • View own orders<br>
+                            • Update order status<br>
+                            • View sales analytics
+                        </td>
+                        <td>Own Products Only</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Customer</strong></td>
+                        <td>
+                            • Browse products<br>
+                            • Add to cart<br>
+                            • Place orders<br>
+                            • View order history<br>
+                            • Manage profile
+                        </td>
+                        <td>Public + Own Data</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="sprints" class="section">
+            <h2>5. Sprint Planning (4 Sprints)</h2>
+            
+            <div class="sprint-card">
+                <h4>🚀 Sprint 1: Authentication & Seller Onboarding (2 weeks)</h4>
+                <ul>
+                    <li><strong>System Authentication:</strong> Register, Login, Logout functionality</li>
+                    <li><strong>JWT Implementation:</strong> Token-based authentication with refresh tokens</li>
+                    <li><strong>Seller Self-Signup:</strong> Seller registration form with business details</li>
+                    <li><strong>Email Verification:</strong> Send verification emails to new sellers</li>
+                    <li><strong>Admin Panel - Sellers:</strong> View, Approve, Reject seller applications</li>
+                    <li><strong>Status Notifications:</strong> Email notifications for approval/rejection</li>
+                </ul>
+                <p><strong>Deliverables:</strong> Auth API, Email service, Admin seller management panel</p>
+            </div>
+            
+            <div class="sprint-card">
+                <h4>📦 Sprint 2: Product Management (Seller Panel) (2 weeks)</h4>
+                <ul>
+                    <li><strong>Product CRUD:</strong> Create, Read, Update, Delete products</li>
+                    <li><strong>Image Upload:</strong> Product image upload and management</li>
+                    <li><strong>Inventory Management:</strong> Stock tracking and updates</li>
+                    <li><strong>Product Categories:</strong> Category and subcategory management</li>
+                    <li><strong>Product Listing:</strong> Seller's product list with search/filter</li>
+                    <li><strong>Product Status:</strong> Active/Inactive product toggle</li>
+                </ul>
+                <p><strong>Deliverables:</strong> Seller dashboard, Product management APIs, Image storage</p>
+            </div>
+            
+            <div class="sprint-card">
+                <h4>👥 Sprint 3: Customer Onboarding & Basic Auth (2 weeks)</h4>
+                <ul>
+                    <li><strong>Customer Registration:</strong> Self-signup with email verification</li>
+                    <li><strong>Customer Login:</strong> Secure authentication</li>
+                    <li><strong>Profile Management:</strong> Update personal information, addresses</li>
+                    <li><strong>Address Book:</strong> Multiple shipping addresses</li>
+                    <li><strong>Password Management:</strong> Change password, forgot password flow</li>
+                </ul>
+                <p><strong>Deliverables:</strong> Customer auth APIs, Profile management UI</p>
+            </div>
+            
+            <div class="sprint-card">
+                <h4>🛍️ Sprint 4: Shopping & Ordering (2 weeks)</h4>
+                <ul>
+                    <li><strong>Product Browsing:</strong> View all in-stock products with pagination</li>
+                    <li><strong>Product Details:</strong> Detailed product view page</li>
+                    <li><strong>Shopping Cart:</strong> Add, update, remove items from cart</li>
+                    <li><strong>Stock Validation:</strong> Real-time stock checking</li>
+                    <li><strong>Checkout:</strong> Order placement with address selection</li>
+                    <li><strong>Order History:</strong> View past orders and status</li>
+                    <li><strong>Order Management:</strong> Seller can update order status</li>
+                </ul>
+                <p><strong>Deliverables:</strong> Customer shopping interface, Cart system, Order processing</p>
+            </div>
+        </div>
+        
+        <div id="features" class="section">
+            <h2>6. Feature Specifications</h2>
+            
+            <h3>Authentication Features</h3>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                sequenceDiagram
+                    participant U as User
+                    participant F as Frontend
+                    participant B as Backend
+                    participant D as Database
+                    participant E as Email Service
+                    
+                    U->>F: Submit Registration
+                    F->>B: POST /api/auth/register
+                    B->>D: Create User (status: pending)
+                    D-->>B: User Created
+                    B->>E: Send Verification Email
+                    E-->>U: Verification Email
+                    B-->>F: Registration Success
+                    
+                    U->>F: Click Verification Link
+                    F->>B: GET /api/auth/verify/:token
+                    B->>D: Update User (verified: true)
+                    B-->>F: Verification Success
+                    F-->>U: Redirect to Login
+                    
+                    U->>F: Submit Login
+                    F->>B: POST /api/auth/login
+                    B->>D: Verify Credentials
+                    D-->>B: User Data
+                    B-->>F: JWT Token + User Info
+                    F-->>U: Dashboard Access
+                </div>
+            </div>
+            
+            <h3>Seller Approval Workflow</h3>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                stateDiagram-v2
+                    [*] --> Registered: Seller Signup
+                    Registered --> EmailVerified: Email Verification
+                    EmailVerified --> PendingApproval: Auto Status
+                    PendingApproval --> Approved: Admin Approves
+                    PendingApproval --> Rejected: Admin Rejects
+                    Approved --> Active: Can Manage Products
+                    Rejected --> [*]: Account Disabled
+                    Active --> Suspended: Admin Action
+                    Suspended --> Active: Admin Reactivates
+                </div>
+            </div>
+            
+            <h3>Product Management Features</h3>
+            <ul>
+                <li>Create product with multiple images</li>
+                <li>Update product details and pricing</li>
+                <li>Manage inventory levels</li>
+                <li>Activate/Deactivate products</li>
+                <li>Delete products</li>
+                <li>View product performance analytics</li>
+            </ul>
+            
+            <h3>Shopping Cart Flow</h3>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                sequenceDiagram
+                    participant C as Customer
+                    participant F as Frontend
+                    participant B as Backend
+                    participant D as Database
+                    
+                    C->>F: Browse Products
+                    F->>B: GET /api/products
+                    B->>D: Query Active Products
+                    D-->>B: Product List
+                    B-->>F: Products with Stock Info
+                    
+                    C->>F: Add to Cart
+                    F->>B: POST /api/cart/add
+                    B->>D: Check Stock Availability
+                    D-->>B: Stock Status
+                    alt Stock Available
+                        B->>D: Add to Cart
+                        B-->>F: Success
+                    else Out of Stock
+                        B-->>F: Error: Out of Stock
+                    end
+                    
+                    C->>F: Update Quantity
+                    F->>B: PUT /api/cart/:itemId
+                    B->>D: Validate Stock
+                    B->>D: Update Cart Item
+                    B-->>F: Updated Cart
+                    
+                    C->>F: Proceed to Checkout
+                    F->>B: POST /api/orders
+                    B->>D: Validate Stock Again
+                    B->>D: Create Order
+                    B->>D: Update Stock Levels
+                    B->>D: Clear Cart
+                    B-->>F: Order Confirmation
+                    F-->>C: Order Success Page
+                </div>
+            </div>
+        </div>
+        
+        <div id="api" class="section">
+            <h2>7. API Documentation</h2>
+            
+            <h3>Authentication Endpoints</h3>
+            <div class="api-endpoint">
+                <span class="method post">POST</span> /api/auth/register
+                <p>Register new user (seller or customer)</p>
+            </div>
+            <div class="api-endpoint">
+                <span class="method post">POST</span> /api/auth/login
+                <p>User login - returns JWT token</p>
+            </div>
+            <div class="api-endpoint">
+                <span class="method post">POST</span> /api/auth/logout
+                <p>Logout and invalidate token</p>
+            </div>
+            <div class="api-endpoint">
+                <span class="method get">GET</span> /api/auth/verify/:token
+                <p>Verify email address</p>
+            </div>
+            
+            <h3>Admin Endpoints</h3>
+            <div class="api-endpoint">
+                <span class="method get">GET</span> /api/admin/sellers
+                <p>Get all sellers (pending, approved, rejected)</p>
+            </div>
+            <div class="api-endpoint">
+                <span class="method put">PUT</span> /api/admin/sellers/:id/approve
+                <p>Approve seller account</p>
+            </div>
+            <div class="api-endpoint">
+                <span class="method put">PUT</span> /api/admin/sellers/:id/reject
+                <p>Reject seller account</p>
+            </div>
+            
+            <h3>Product Endpoints</h3>
+            <div class="api-endpoint">
+                <span class="method get">GET</span> /api/products
+                <p>Get all active products (public)</p>
+            </div>
+            <div class="api-endpoint">
+                <span class="method get">GET</span> /api/products/:id
+                <p>Get product details</p>
+            </div>
+            <div class="api-endpoint">
+                <span class="method post">POST</span> /api/seller/products
+                <p>Create new product (seller only)</p>
+            </div>
+            <div class="api-endpoint">
+                <span class="method put">PUT</span> /api/seller/products/:id
+                <p>Update product (seller only)</p>
+            </div>
+            <div class="api-endpoint">
+                <span class="method delete">DELETE</span> /api/seller/products/:id
+                <p>Delete product (seller only)</p>
+            </div>
+            
+            <h3>Cart Endpoints</h3>
+            <div class="api-endpoint">
+                <span class="method get">GET</span> /api/cart
+                <p>Get current user's cart</p>
+            </div>
+            <div class="api-endpoint">
+                <span class="method post">POST</span> /api/cart/add
+                <p>Add item to cart</p>
+            </div>
+            <div class="api-endpoint">
+                <span class="method put">PUT</span> /api/cart/:itemId
+                <p>Update cart item quantity</p>
+            </div>
+            <div class="api-endpoint">
+                <span class="method delete">DELETE</span> /api/cart/:itemId
+                <p>Remove item from cart</p>
+            </div>
+            
+            <h3>Order Endpoints</h3>
+            <div class="api-endpoint">
+                <span class="method post">POST</span> /api/orders
+                <p>Place order from cart</p>
+            </div>
+            <div class="api-endpoint">
+                <span class="method get">GET</span> /api/orders
+                <p>Get user's order history</p>
+            </div>
+            <div class="api-endpoint">
+                <span class="method get">GET</span> /api/orders/:id
+                <p>Get order details</p>
+            </div>
+        </div>
+        
+        <div id="database" class="section">
+            <h2>8. Database Schema</h2>
+            
+            <div class="mermaid-container">
+                <div class="mermaid">
+                erDiagram
+                    USERS ||--o{ PRODUCTS : creates
+                    USERS ||--o{ CARTS : has
+                    USERS ||--o{ ORDERS : places
+                    PRODUCTS ||--o{ CART_ITEMS : contains
+                    PRODUCTS ||--o{ ORDER_ITEMS : contains
+                    CARTS ||--o{ CART_ITEMS : contains
+                    ORDERS ||--o{ ORDER_ITEMS : contains
+                    
+                    USERS {
+                        int id PK
+                        string email UK
+                        string password
+                        string role
+                        string status
+                        boolean verified
+                        datetime created_at
+                        datetime updated_at
+                    }
+                    
+                    SELLER_PROFILES {
+                        int id PK
+                        int user_id FK
+                        string business_name
+                        string business_address
+                        string phone
+                        string approval_status
+                        datetime approved_at
+                    }
+                    
+                    PRODUCTS {
+                        int id PK
+                        int seller_id FK
+                        string title
+                        text description
+                        decimal price
+                        int stock_quantity
+                        string category
+                        string image_url
+                        string status
+                        datetime created_at
+                        datetime updated_at
+                    }
+                    
+                    CARTS {
+                        int id PK
+                        int user_id FK
+                        datetime created_at
+                        datetime updated_at
+                    }
+                    
+                    CART_ITEMS {
+                        int id PK
+                        int cart_id FK
+                        int product_id FK
+                        int quantity
+                        decimal price
+                    }
+                    
+                    ORDERS {
+                        int id PK
+                        int user_id FK
+                        string order_number
+                        decimal total_amount
+                        string status
+                        string shipping_address
+                        datetime created_at
+                        datetime updated_at
+                    }
+                    
+                    ORDER_ITEMS {
+                        int id PK
+                        int order_id FK
+                        int product_id FK
+                        int quantity
+                        decimal price
+                        decimal subtotal
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div id="code" class="section">
+            <h2>9. Code Implementation Examples</h2>
+            
+            <h3>Frontend - React with Axios</h3>
+            
+            <div class="code-header">📁 src/api/axios.js - Axios Configuration</div>
+            <div class="code-block">
+<pre>import axios from 'axios';
+
+const API = axios.create({
+  baseURL: 'http://localhost:5000/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add JWT token
+API.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor to handle errors
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default API;</pre>
+            </div>
+            
+            <div class="code-header">📁 src/services/authService.js - Authentication Service</div>
+            <div class="code-block">
+<pre>import API from '../api/axios';
+
+export const authService = {
+  register: async (userData) => {
+    const response = await API.post('/auth/register', userData);
+    return response.data;
+  },
+
+  login: async (credentials) => {
+    const response = await API.post('/auth/login', credentials);
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  },
+
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  },
