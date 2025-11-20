@@ -854,3 +854,1433 @@ export const authService = {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   },
+
+  getCurrentUser: () => {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+  },
+};
+
+export default authService;</pre>
+            </div>
+            
+            <div class="code-header">📁 src/components/Login.jsx - Login Component</div>
+            <div class="code-block">
+<pre>import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import authService from '../services/authService';
+
+const Login = () => {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await authService.login(formData);
+      
+      // Redirect based on role
+      if (response.user.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (response.user.role === 'seller') {
+        if (response.user.status === 'approved') {
+          navigate('/seller/dashboard');
+        } else {
+          navigate('/seller/pending');
+        }
+      } else {
+        navigate('/customer/dashboard');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    &lt;div className="login-container"&gt;
+      &lt;h2&gt;Login&lt;/h2&gt;
+      {error && &lt;div className="error"&gt;{error}&lt;/div&gt;}
+      &lt;form onSubmit={handleSubmit}&gt;
+        &lt;input
+          type="email"
+          name="email"
+          placeholder="Email"
+          value={formData.email}
+          onChange={handleChange}
+          required
+        /&gt;
+        &lt;input
+          type="password"
+          name="password"
+          placeholder="Password"
+          value={formData.password}
+          onChange={handleChange}
+          required
+        /&gt;
+        &lt;button type="submit" disabled={loading}&gt;
+          {loading ? 'Logging in...' : 'Login'}
+        &lt;/button&gt;
+      &lt;/form&gt;
+    &lt;/div&gt;
+  );
+};
+
+export default Login;</pre>
+            </div>
+            
+            <div class="code-header">📁 src/services/productService.js - Product Service</div>
+            <div class="code-block">
+<pre>import API from '../api/axios';
+
+export const productService = {
+  getAllProducts: async (params = {}) => {
+    const response = await API.get('/products', { params });
+    return response.data;
+  },
+
+  getProductById: async (id) => {
+    const response = await API.get(`/products/${id}`);
+    return response.data;
+  },
+
+  createProduct: async (productData) => {
+    const response = await API.post('/seller/products', productData);
+    return response.data;
+  },
+
+  updateProduct: async (id, productData) => {
+    const response = await API.put(`/seller/products/${id}`, productData);
+    return response.data;
+  },
+
+  deleteProduct: async (id) => {
+    const response = await API.delete(`/seller/products/${id}`);
+    return response.data;
+  },
+
+  getSellerProducts: async () => {
+    const response = await API.get('/seller/products');
+    return response.data;
+  },
+};
+
+export default productService;</pre>
+            </div>
+            
+            <div class="code-header">📁 src/services/cartService.js - Cart Service</div>
+            <div class="code-block">
+<pre>import API from '../api/axios';
+
+export const cartService = {
+  getCart: async () => {
+    const response = await API.get('/cart');
+    return response.data;
+  },
+
+  addToCart: async (productId, quantity) => {
+    const response = await API.post('/cart/add', { productId, quantity });
+    return response.data;
+  },
+
+  updateCartItem: async (itemId, quantity) => {
+    const response = await API.put(`/cart/${itemId}`, { quantity });
+    return response.data;
+  },
+
+  removeFromCart: async (itemId) => {
+    const response = await API.delete(`/cart/${itemId}`);
+    return response.data;
+  },
+
+  clearCart: async () => {
+    const response = await API.delete('/cart');
+    return response.data;
+  },
+};
+
+export default cartService;</pre>
+            </div>
+            
+            <h3>Backend - Node.js + Express</h3>
+            
+            <div class="code-header">📁 server.js - Express Server Setup</div>
+            <div class="code-block">
+<pre>const express = require('express');
+const cors = require('cors');
+const mysql = require('mysql2/promise');
+require('dotenv').config();
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Database connection
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || 'ecommerce',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
+
+// Make pool available to routes
+app.locals.db = pool;
+
+// Routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/admin', require('./routes/admin'));
+app.use('/api/products', require('./routes/products'));
+app.use('/api/seller', require('./routes/seller'));
+app.use('/api/cart', require('./routes/cart'));
+app.use('/api/orders', require('./routes/orders'));
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Something went wrong!' });
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});</pre>
+            </div>
+            
+            <div class="code-header">📁 middleware/auth.js - JWT Authentication Middleware</div>
+            <div class="code-block">
+<pre>const jwt = require('jsonwebtoken');
+
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Access token required' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid or expired token' });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+const authorizeRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        message: 'You do not have permission to access this resource' 
+      });
+    }
+    next();
+  };
+};
+
+const checkSellerApproval = async (req, res, next) => {
+  if (req.user.role === 'seller' && req.user.status !== 'approved') {
+    return res.status(403).json({ 
+      message: 'Your seller account is pending approval' 
+    });
+  }
+  next();
+};
+
+module.exports = { 
+  authenticateToken, 
+  authorizeRoles, 
+  checkSellerApproval 
+};</pre>
+            </div>
+            
+            <div class="code-header">📁 routes/auth.js - Authentication Routes</div>
+            <div class="code-block">
+<pre>const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { body, validationResult } = require('express-validator');
+const router = express.Router();
+
+// Register
+router.post('/register', [
+  body('email').isEmail(),
+  body('password').isLength({ min: 6 }),
+  body('role').isIn(['seller', 'customer']),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { email, password, role, name, businessName } = req.body;
+  const db = req.app.locals.db;
+
+  try {
+    // Check if user exists
+    const [existing] = await db.query(
+      'SELECT id FROM users WHERE email = ?', 
+      [email]
+    );
+    
+    if (existing.length > 0) {
+      return res.status(400).json({ message: 'Email already registered' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Create user
+    const status = role === 'seller' ? 'pending' : 'active';
+    const [result] = await db.query(
+      `INSERT INTO users (email, password, role, name, status, verified) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [email, hashedPassword, role, name, status, false]
+    );
+
+    // Create seller profile if role is seller
+    if (role === 'seller') {
+      await db.query(
+        `INSERT INTO seller_profiles (user_id, business_name, approval_status) 
+         VALUES (?, ?, ?)`,
+        [result.insertId, businessName, 'pending']
+      );
+    }
+
+    // TODO: Send verification email
+
+    res.status(201).json({ 
+      message: 'Registration successful. Please verify your email.',
+      userId: result.insertId 
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Registration failed' });
+  }
+});
+
+// Login
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  const db = req.app.locals.db;
+
+  try {
+    // Find user
+    const [users] = await db.query(
+      'SELECT * FROM users WHERE email = ?', 
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const user = users[0];
+
+    // Check password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if verified
+    if (!user.verified) {
+      return res.status(403).json({ 
+        message: 'Please verify your email before logging in' 
+      });
+    }
+
+    // Generate token
+    const token = jwt.sign(
+      { 
+        id: user.id, 
+        email: user.email, 
+        role: user.role,
+        status: user.status 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        status: user.status,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Login failed' });
+  }
+});
+
+module.exports = router;</pre>
+            </div>
+            
+            <div class="code-header">📁 routes/admin.js - Admin Routes</div>
+            <div class="code-block">
+<pre>const express = require('express');
+const router = express.Router();
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+
+// Get all sellers
+router.get('/sellers', 
+  authenticateToken, 
+  authorizeRoles('admin'), 
+  async (req, res) => {
+    const db = req.app.locals.db;
+    
+    try {
+      const [sellers] = await db.query(`
+        SELECT u.id, u.email, u.name, u.status, u.created_at,
+               sp.business_name, sp.business_address, sp.phone, 
+               sp.approval_status, sp.approved_at
+        FROM users u
+        LEFT JOIN seller_profiles sp ON u.id = sp.user_id
+        WHERE u.role = 'seller'
+        ORDER BY u.created_at DESC
+      `);
+      
+      res.json(sellers);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to fetch sellers' });
+    }
+});
+
+// Approve seller
+router.put('/sellers/:id/approve', 
+  authenticateToken, 
+  authorizeRoles('admin'), 
+  async (req, res) => {
+    const { id } = req.params;
+    const db = req.app.locals.db;
+    
+    try {
+      await db.query(
+        'UPDATE users SET status = ? WHERE id = ? AND role = ?',
+        ['approved', id, 'seller']
+      );
+      
+      await db.query(
+        'UPDATE seller_profiles SET approval_status = ?, approved_at = NOW() WHERE user_id = ?',
+        ['approved', id]
+      );
+      
+      // TODO: Send approval email
+      
+      res.json({ message: 'Seller approved successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to approve seller' });
+    }
+});
+
+// Reject seller
+router.put('/sellers/:id/reject', 
+  authenticateToken, 
+  authorizeRoles('admin'), 
+  async (req, res) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const db = req.app.locals.db;
+    
+    try {
+      await db.query(
+        'UPDATE users SET status = ? WHERE id = ? AND role = ?',
+        ['rejected', id, 'seller']
+      );
+      
+      await db.query(
+        'UPDATE seller_profiles SET approval_status = ? WHERE user_id = ?',
+        ['rejected', id]
+      );
+      
+      // TODO: Send rejection email with reason
+      
+      res.json({ message: 'Seller rejected' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to reject seller' });
+    }
+});
+
+module.exports = router;</pre>
+            </div>
+            
+            <div class="code-header">📁 routes/products.js - Product Routes</div>
+            <div class="code-block">
+<pre>const express = require('express');
+const router = express.Router();
+
+// Get all products (public)
+router.get('/', async (req, res) => {
+  const db = req.app.locals.db;
+  const { category, search, page = 1, limit = 20 } = req.query;
+  const offset = (page - 1) * limit;
+  
+  try {
+    let query = `
+      SELECT p.*, u.name as seller_name 
+      FROM products p
+      JOIN users u ON p.seller_id = u.id
+      WHERE p.status = 'active' AND p.stock_quantity > 0
+    `;
+    const params = [];
+    
+    if (category) {
+      query += ' AND p.category = ?';
+      params.push(category);
+    }
+    
+    if (search) {
+      query += ' AND (p.title LIKE ? OR p.description LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`);
+    }
+    
+    query += ' ORDER BY p.created_at DESC LIMIT ? OFFSET ?';
+    params.push(parseInt(limit), parseInt(offset));
+    
+    const [products] = await db.query(query, params);
+    
+    // Get total count
+    let countQuery = 'SELECT COUNT(*) as total FROM products p WHERE p.status = ? AND p.stock_quantity > 0';
+    const countParams = ['active'];
+    
+    if (category) {
+      countQuery += ' AND p.category = ?';
+      countParams.push(category);
+    }
+    
+    if (search) {
+      countQuery += ' AND (p.title LIKE ? OR p.description LIKE ?)';
+      countParams.push(`%${search}%`, `%${search}%`);
+    }
+    
+    const [countResult] = await db.query(countQuery, countParams);
+    
+    res.json({
+      products,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: countResult[0].total,
+        pages: Math.ceil(countResult[0].total / limit),
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch products' });
+  }
+});
+
+// Get product by ID
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+  const db = req.app.locals.db;
+  
+  try {
+    const [products] = await db.query(`
+      SELECT p.*, u.name as seller_name, u.email as seller_email
+      FROM products p
+      JOIN users u ON p.seller_id = u.id
+      WHERE p.id = ?
+    `, [id]);
+    
+    if (products.length === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    res.json(products[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch product' });
+  }
+});
+
+module.exports = router;</pre>
+            </div>
+            
+            <div class="code-header">📁 routes/seller.js - Seller Routes</div>
+            <div class="code-block">
+<pre>const express = require('express');
+const router = express.Router();
+const { authenticateToken, authorizeRoles, checkSellerApproval } = require('../middleware/auth');
+
+// Get seller's products
+router.get('/products', 
+  authenticateToken, 
+  authorizeRoles('seller'),
+  checkSellerApproval,
+  async (req, res) => {
+    const db = req.app.locals.db;
+    
+    try {
+      const [products] = await db.query(
+        'SELECT * FROM products WHERE seller_id = ? ORDER BY created_at DESC',
+        [req.user.id]
+      );
+      
+      res.json(products);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to fetch products' });
+    }
+});
+
+// Create product
+router.post('/products', 
+  authenticateToken, 
+  authorizeRoles('seller'),
+  checkSellerApproval,
+  async (req, res) => {
+    const { title, description, price, stock_quantity, category, image_url } = req.body;
+    const db = req.app.locals.db;
+    
+    try {
+      const [result] = await db.query(`
+        INSERT INTO products (seller_id, title, description, price, stock_quantity, category, image_url, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
+      `, [req.user.id, title, description, price, stock_quantity, category, image_url]);
+      
+      res.status(201).json({ 
+        message: 'Product created successfully',
+        productId: result.insertId 
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to create product' });
+    }
+});
+
+// Update product
+router.put('/products/:id', 
+  authenticateToken, 
+  authorizeRoles('seller'),
+  checkSellerApproval,
+  async (req, res) => {
+    const { id } = req.params;
+    const { title, description, price, stock_quantity, category, image_url, status } = req.body;
+    const db = req.app.locals.db;
+    
+    try {
+      const [result] = await db.query(`
+        UPDATE products 
+        SET title = ?, description = ?, price = ?, stock_quantity = ?, 
+            category = ?, image_url = ?, status = ?, updated_at = NOW()
+        WHERE id = ? AND seller_id = ?
+      `, [title, description, price, stock_quantity, category, image_url, status, id, req.user.id]);
+      
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: 'Product not found or unauthorized' });
+      }
+      
+      res.json({ message: 'Product updated successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to update product' });
+    }
+});
+
+// Delete product
+router.delete('/products/:id', 
+  authenticateToken, 
+  authorizeRoles('seller'),
+  checkSellerApproval,
+  async (req, res) => {
+    const { id } = req.params;
+    const db = req.app.locals.db;
+    
+    try {
+      const [result] = await db.query(
+        'DELETE FROM products WHERE id = ? AND seller_id = ?',
+        [id, req.user.id]
+      );
+      
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: 'Product not found or unauthorized' });
+      }
+      
+      res.json({ message: 'Product deleted successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to delete product' });
+    }
+});
+
+module.exports = router;</pre>
+            </div>
+            
+            <div class="code-header">📁 routes/cart.js - Cart Routes</div>
+            <div class="code-block">
+<pre>const express = require('express');
+const router = express.Router();
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+
+// Get user's cart
+router.get('/', 
+  authenticateToken, 
+  authorizeRoles('customer'),
+  async (req, res) => {
+    const db = req.app.locals.db;
+    
+    try {
+      const [items] = await db.query(`
+        SELECT ci.*, p.title, p.price, p.image_url, p.stock_quantity, p.status
+        FROM cart_items ci
+        JOIN carts c ON ci.cart_id = c.id
+        JOIN products p ON ci.product_id = p.id
+        WHERE c.user_id = ?
+      `, [req.user.id]);
+      
+      const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      
+      res.json({ items, total });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to fetch cart' });
+    }
+});
+
+// Add to cart
+router.post('/add', 
+  authenticateToken, 
+  authorizeRoles('customer'),
+  async (req, res) => {
+    const { productId, quantity } = req.body;
+    const db = req.app.locals.db;
+    
+    try {
+      // Check stock
+      const [products] = await db.query(
+        'SELECT stock_quantity, status FROM products WHERE id = ?',
+        [productId]
+      );
+      
+      if (products.length === 0) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+      
+      if (products[0].status !== 'active') {
+        return res.status(400).json({ message: 'Product is not available' });
+      }
+      
+      if (products[0].stock_quantity < quantity) {
+        return res.status(400).json({ message: 'Insufficient stock' });
+      }
+      
+      // Get or create cart
+      let [carts] = await db.query(
+        'SELECT id FROM carts WHERE user_id = ?',
+        [req.user.id]
+      );
+      
+      let cartId;
+      if (carts.length === 0) {
+        const [result] = await db.query(
+          'INSERT INTO carts (user_id) VALUES (?)',
+          [req.user.id]
+        );
+        cartId = result.insertId;
+      } else {
+        cartId = carts[0].id;
+      }
+      
+      // Check if item already in cart
+      const [existing] = await db.query(
+        'SELECT id, quantity FROM cart_items WHERE cart_id = ? AND product_id = ?',
+        [cartId, productId]
+      );
+      
+      if (existing.length > 0) {
+        // Update quantity
+        const newQuantity = existing[0].quantity + quantity;
+        if (products[0].stock_quantity < newQuantity) {
+          return res.status(400).json({ message: 'Insufficient stock' });
+        }
+        
+        await db.query(
+          'UPDATE cart_items SET quantity = ? WHERE id = ?',
+          [newQuantity, existing[0].id]
+        );
+      } else {
+        // Add new item
+        await db.query(
+          'INSERT INTO cart_items (cart_id, product_id, quantity, price) VALUES (?, ?, ?, ?)',
+          [cartId, productId, quantity, products[0].price]
+        );
+      }
+      
+      res.json({ message: 'Added to cart successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to add to cart' });
+    }
+});
+
+// Update cart item
+router.put('/:itemId', 
+  authenticateToken, 
+  authorizeRoles('customer'),
+  async (req, res) => {
+    const { itemId } = req.params;
+    const { quantity } = req.body;
+    const db = req.app.locals.db;
+    
+    try {
+      // Verify ownership and check stock
+      const [items] = await db.query(`
+        SELECT ci.*, p.stock_quantity
+        FROM cart_items ci
+        JOIN carts c ON ci.cart_id = c.id
+        JOIN products p ON ci.product_id = p.id
+        WHERE ci.id = ? AND c.user_id = ?
+      `, [itemId, req.user.id]);
+      
+      if (items.length === 0) {
+        return res.status(404).json({ message: 'Cart item not found' });
+      }
+      
+      if (items[0].stock_quantity < quantity) {
+        return res.status(400).json({ message: 'Insufficient stock' });
+      }
+      
+      await db.query(
+        'UPDATE cart_items SET quantity = ? WHERE id = ?',
+        [quantity, itemId]
+      );
+      
+      res.json({ message: 'Cart updated successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to update cart' });
+    }
+});
+
+// Remove from cart
+router.delete('/:itemId', 
+  authenticateToken, 
+  authorizeRoles('customer'),
+  async (req, res) => {
+    const { itemId } = req.params;
+    const db = req.app.locals.db;
+    
+    try {
+      const [result] = await db.query(`
+        DELETE ci FROM cart_items ci
+        JOIN carts c ON ci.cart_id = c.id
+        WHERE ci.id = ? AND c.user_id = ?
+      `, [itemId, req.user.id]);
+      
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: 'Cart item not found' });
+      }
+      
+      res.json({ message: 'Item removed from cart' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to remove item' });
+    }
+});
+
+module.exports = router;</pre>
+            </div>
+            
+            <div class="code-header">📁 routes/orders.js - Order Routes</div>
+            <div class="code-block">
+<pre>const express = require('express');
+const router = express.Router();
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+
+// Place order
+router.post('/', 
+  authenticateToken, 
+  authorizeRoles('customer'),
+  async (req, res) => {
+    const { shipping_address } = req.body;
+    const db = req.app.locals.db;
+    const connection = await db.getConnection();
+    
+    try {
+      await connection.beginTransaction();
+      
+      // Get cart items
+      const [items] = await connection.query(`
+        SELECT ci.*, p.stock_quantity, p.status
+        FROM cart_items ci
+        JOIN carts c ON ci.cart_id = c.id
+        JOIN products p ON ci.product_id = p.id
+        WHERE c.user_id = ?
+      `, [req.user.id]);
+      
+      if (items.length === 0) {
+        await connection.rollback();
+        return res.status(400).json({ message: 'Cart is empty' });
+      }
+      
+      // Validate stock for all items
+      for (const item of items) {
+        if (item.status !== 'active') {
+          await connection.rollback();
+          return res.status(400).json({ 
+            message: `Product ${item.title} is no longer available` 
+          });
+        }
+        if (item.stock_quantity < item.quantity) {
+          await connection.rollback();
+          return res.status(400).json({ 
+            message: `Insufficient stock for ${item.title}` 
+          });
+        }
+      }
+      
+      // Calculate total
+      const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      
+      // Create order
+      const orderNumber = 'ORD-' + Date.now();
+      const [orderResult] = await connection.query(`
+        INSERT INTO orders (user_id, order_number, total_amount, status, shipping_address)
+        VALUES (?, ?, ?, 'pending', ?)
+      `, [req.user.id, orderNumber, total, shipping_address]);
+      
+      const orderId = orderResult.insertId;
+      
+      // Create order items and update stock
+      for (const item of items) {
+        await connection.query(`
+          INSERT INTO order_items (order_id, product_id, quantity, price, subtotal)
+          VALUES (?, ?, ?, ?, ?)
+        `, [orderId, item.product_id, item.quantity, item.price, item.price * item.quantity]);
+        
+        // Update stock
+        await connection.query(`
+          UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?
+        `, [item.quantity, item.product_id]);
+      }
+      
+      // Clear cart
+      await connection.query(`
+        DELETE ci FROM cart_items ci
+        JOIN carts c ON ci.cart_id = c.id
+        WHERE c.user_id = ?
+      `, [req.user.id]);
+      
+      await connection.commit();
+      
+      res.status(201).json({ 
+        message: 'Order placed successfully',
+        orderId,
+        orderNumber,
+        total
+      });
+    } catch (error) {
+      await connection.rollback();
+      console.error(error);
+      res.status(500).json({ message: 'Failed to place order' });
+    } finally {
+      connection.release();
+    }
+});
+
+// Get user's orders
+router.get('/', 
+  authenticateToken, 
+  authorizeRoles('customer'),
+  async (req, res) => {
+    const db = req.app.locals.db;
+    
+    try {
+      const [orders] = await db.query(`
+        SELECT * FROM orders 
+        WHERE user_id = ? 
+        ORDER BY created_at DESC
+      `, [req.user.id]);
+      
+      res.json(orders);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to fetch orders' });
+    }
+});
+
+// Get order details
+router.get('/:id', 
+  authenticateToken,
+  async (req, res) => {
+    const { id } = req.params;
+    const db = req.app.locals.db;
+    
+    try {
+      const [orders] = await db.query(`
+        SELECT * FROM orders WHERE id = ? AND user_id = ?
+      `, [id, req.user.id]);
+      
+      if (orders.length === 0) {
+        return res.status(404).json({ message: 'Order not found' });
+      }
+      
+      const [items] = await db.query(`
+        SELECT oi.*, p.title, p.image_url
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.id
+        WHERE oi.order_id = ?
+      `, [id]);
+      
+      res.json({ ...orders[0], items });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to fetch order details' });
+    }
+});
+
+module.exports = router;</pre>
+            </div>
+            
+            <h3>Database Schema - MySQL</h3>
+            
+            <div class="code-header">📁 database/schema.sql - Database Schema</div>
+            <div class="code-block">
+<pre>CREATE DATABASE IF NOT EXISTS ecommerce;
+USE ecommerce;
+
+-- Users table
+CREATE TABLE users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'seller', 'customer') NOT NULL,
+    status ENUM('pending', 'approved', 'rejected', 'active', 'suspended') DEFAULT 'active',
+    verified BOOLEAN DEFAULT FALSE,
+    verification_token VARCHAR(255),
+    reset_token VARCHAR(255),
+    reset_token_expiry DATETIME,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_email (email),
+    INDEX idx_role (role),
+    INDEX idx_status (status)
+);
+
+-- Seller profiles table
+CREATE TABLE seller_profiles (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    business_name VARCHAR(255) NOT NULL,
+    business_address TEXT,
+    phone VARCHAR(20),
+    business_description TEXT,
+    approval_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    approved_at DATETIME,
+    approved_by INT,
+    rejection_reason TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_approval_status (approval_status)
+);
+
+-- Products table
+CREATE TABLE products (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    seller_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    stock_quantity INT NOT NULL DEFAULT 0,
+    category VARCHAR(100),
+    image_url VARCHAR(500),
+    status ENUM('active', 'inactive', 'out_of_stock') DEFAULT 'active',
+    views INT DEFAULT 0,
+    sales_count INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_seller (seller_id),
+    INDEX idx_category (category),
+    INDEX idx_status (status),
+    INDEX idx_created (created_at),
+    FULLTEXT INDEX idx_search (title, description)
+);
+
+-- Carts table
+CREATE TABLE carts (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE INDEX idx_user (user_id)
+);
+
+-- Cart items table
+CREATE TABLE cart_items (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    cart_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
+    price DECIMAL(10, 2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    UNIQUE INDEX idx_cart_product (cart_id, product_id),
+    INDEX idx_product (product_id)
+);
+
+-- Orders table
+CREATE TABLE orders (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    order_number VARCHAR(50) UNIQUE NOT NULL,
+    total_amount DECIMAL(10, 2) NOT NULL,
+    status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
+    shipping_address TEXT NOT NULL,
+    payment_method VARCHAR(50),
+    payment_status ENUM('pending', 'paid', 'failed') DEFAULT 'pending',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user (user_id),
+    INDEX idx_order_number (order_number),
+    INDEX idx_status (status),
+    INDEX idx_created (created_at)
+);
+
+-- Order items table
+CREATE TABLE order_items (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    seller_id INT NOT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    subtotal DECIMAL(10, 2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_order (order_id),
+    INDEX idx_product (product_id),
+    INDEX idx_seller (seller_id)
+);
+
+-- Customer addresses table
+CREATE TABLE customer_addresses (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    address_type ENUM('shipping', 'billing', 'both') DEFAULT 'shipping',
+    full_name VARCHAR(255) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    address_line1 VARCHAR(255) NOT NULL,
+    address_line2 VARCHAR(255),
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100) NOT NULL,
+    postal_code VARCHAR(20) NOT NULL,
+    country VARCHAR(100) NOT NULL,
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user (user_id)
+);
+
+-- Insert default admin user (password: admin123)
+INSERT INTO users (email, password, name, role, status, verified) 
+VALUES ('admin@ecommerce.com', '$2a$10$X9Y.8VZ5JKxQ6M1WzH5LHeLgp9CQ5XJ9nH8QzYf5K6VzFxLCmq3Ri', 'Admin User', 'admin', 'active', TRUE);</pre>
+            </div>
+        </div>
+        
+        <div id="wireframes" class="section">
+            <h2>10. Wireframes & UI Mockups</h2>
+            
+            <h3>Product Listing Page</h3>
+            <div class="wireframe">
+                <div class="wireframe-placeholder">
+                    <h4>📱 Product List View</h4>
+                    <p>Grid layout showing products with:</p>
+                    <ul style="text-align: left; display: inline-block;">
+                        <li>Product image</li>
+                        <li>Product title</li>
+                        <li>Price</li>
+                        <li>Seller name</li>
+                        <li>Stock status</li>
+                        <li>Add to Cart button</li>
+                    </ul>
+                    <p><em>Reference: Screenshot from document showing product grid layout</em></p>
+                </div>
+            </div>
+            
+            <h3>Product Detail Page</h3>
+            <div class="wireframe">
+                <div class="wireframe-placeholder">
+                    <h4>🔍 Product Details View</h4>
+                    <p>Detailed view including:</p>
+                    <ul style="text-align: left; display: inline-block;">
+                        <li>Large product image gallery</li>
+                        <li>Product title and description</li>
+                        <li>Pricing information</li>
+                        <li>Stock availability</li>
+                        <li>Seller information</li>
+                        <li>Quantity selector</li>
+                        <li>Add to Cart / Buy Now buttons</li>
+                        <li>Product specifications</li>
+                    </ul>
+                    <p><em>Reference: Screenshot from document showing product detail layout</em></p>
+                </div>
+            </div>
+            
+            <h3>Shopping Cart Page</h3>
+            <div class="wireframe">
+                <div class="wireframe-placeholder">
+                    <h4>🛒 Shopping Cart View</h4>
+                    <p>Cart management interface with:</p>
+                    <ul style="text-align: left; display: inline-block;">
+                        <li>List of cart items with thumbnails</li>
+                        <li>Quantity update controls (+/-)</li>
+                        <li>Remove item button</li>
+                        <li>Individual item subtotals</li>
+                        <li>Cart total calculation</li>
+                        <li>Proceed to Checkout button</li>
+                        <li>Continue Shopping link</li>
+                    </ul>
+                    <p><em>Reference: Screenshot from document showing cart update functionality</em></p>
+                </div>
+            </div>
+            
+            <h3>Admin Dashboard - Seller Management</h3>
+            <div class="wireframe">
+                <div class="wireframe-placeholder">
+                    <h4>👨‍💼 Admin Seller Management</h4>
+                    <p>Admin interface showing:</p>
+                    <ul style="text-align: left; display: inline-block;">
+                        <li>Table of all sellers</li>
+                        <li>Seller status (Pending/Approved/Rejected)</li>
+                        <li>Business information</li>
+                        <li>Registration date</li>
+                        <li>Approve/Reject action buttons</li>
+                        <li>Filter by status dropdown</li>
+                        <li>Search functionality</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <h3>Seller Dashboard - Product Management</h3>
+            <div class="wireframe">
+                <div class="wireframe-placeholder">
+                    <h4>📦 Seller Product Dashboard</h4>
+                    <p>Seller control panel featuring:</p>
+                    <ul style="text-align: left; display: inline-block;">
+                        <li>List of seller's products</li>
+                        <li>Add New Product button</li>
+                        <li>Edit/Delete actions per product</li>
+                        <li>Stock quantity display</li>
+                        <li>Product status toggle (Active/Inactive)</li>
+                        <li>Sales statistics</li>
+                        <li>Quick stock update</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <h3>Authentication Flow</h3>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                graph LR
+                    A[Login Page] --> B{User Type}
+                    B -->|Admin| C[Admin Dashboard]
+                    B -->|Seller| D{Approval Status}
+                    B -->|Customer| E[Customer Dashboard]
+                    
+                    D -->|Approved| F[Seller Dashboard]
+                    D -->|Pending| G[Pending Approval Page]
+                    D -->|Rejected| H[Rejection Notice]
+                    
+                    C --> I[Manage Sellers]
+                    C --> J[View All Orders]
+                    C --> K[System Settings]
+                    
+                    F --> L[Manage Products]
+                    F --> M[View Orders]
+                    F --> N[Analytics]
+                    
+                    E --> O[Browse Products]
+                    E --> P[My Orders]
+                    E --> Q[Profile Settings]
+                    
+                    style C fill:#ffebee
+                    style F fill:#fff3e0
+                    style E fill:#e8f5e9
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>11. Additional Implementation Notes</h2>
+            
+            <h3>Environment Variables (.env)</h3>
+            <div class="code-block">
+<pre># Server Configuration
+PORT=5000
+NODE_ENV=development
+
+# Database Configuration
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=ecommerce
+
+# JWT Configuration
+JWT_SECRET=your_super_secret_jwt_key_change_in_production
+JWT_EXPIRE=7d
+
+# Email Configuration (for verification)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
+EMAIL_FROM=noreply@ecommerce.com
+
+# Frontend URL
+FRONTEND_URL=http://localhost:3000
+
+# File Upload
+MAX_FILE_SIZE=5242880
+UPLOAD_PATH=./uploads</pre>
+            </div>
+            
+            <h3>Testing Checklist</h3>
+            <ul>
+                <li>✅ User registration with email verification</li>
+                <li>✅ Seller approval workflow</li>
+                <li>✅ Product CRUD operations with stock validation</li>
+                <li>✅ Shopping cart functionality</li>
+                <li>✅ Order placement with stock deduction</li>
+                <li>✅ Role-based access control</li>
+                <li>✅ JWT token expiration handling</li>
+                <li>✅ Database transaction rollback on errors</li>
+                <li>✅ Concurrent order race condition handling</li>
+            </ul>
+            
+            <h3>Security Considerations</h3>
+            <ul>
+                <li>🔒 Password hashing with bcrypt (10 rounds)</li>
+                <li>🔒 JWT token authentication</li>
+                <li>🔒 Role-based authorization middleware</li>
+                <li>🔒 SQL injection prevention using parameterized queries</li>
+                <li>🔒 Input validation and sanitization</li>
+                <li>🔒 CORS configuration for production</li>
+                <li>🔒 Rate limiting on authentication endpoints</li>
+                <li>🔒 HTTPS enforcement in production</li>
+            </ul>
+            
+            <h3>Performance Optimization</h3>
+            <ul>
+                <li>⚡ Database indexing on frequently queried columns</li>
+                <li>⚡ Connection pooling for MySQL</li>
+                <li>⚡ Pagination for product listings</li>
+                <li>⚡ Image optimization and CDN integration</li>
+                <li>⚡ Caching strategy for product catalog</li>
+                <li>⚡ Lazy loading for images</li>
+            </ul>
+            
+            <h3>Deployment Considerations</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Recommended Platform</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Frontend</td>
+                        <td>Vercel / Netlify</td>
+                        <td>Automatic deployments from Git</td>
+                    </tr>
+                    <tr>
+                        <td>Backend</td>
+                        <td>AWS EC2 / DigitalOcean / Heroku</td>
+                        <td>Configure environment variables</td>
+                    </tr>
+                    <tr>
+                        <td>Database</td>
+                        <td>AWS RDS / DigitalOcean Managed DB</td>
+                        <td>Enable automated backups</td>
+                    </tr>
+                    <tr>
+                        <td>File Storage</td>
+                        <td>AWS S3 / Cloudinary</td>
+                        <td>For product images</td>
+                    </tr>
+                    <tr>
+                        <td>Email Service</td>
+                        <td>SendGrid / AWS SES</td>
+                        <td>For transactional emails</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>12. Future Enhancements (Post-MVP)</h2>
+            <ul>
+                <li>🚀 Payment gateway integration (Stripe/PayPal)</li>
+                <li>🚀 Order tracking system</li>
+                <li>🚀 Product reviews and ratings</li>
+                <li>🚀 Advanced search with filters</li>
+                <li>🚀 Wishlist functionality</li>
+                <li>🚀 Real-time notifications (WebSocket)</li>
+                <li>🚀 Sales analytics dashboard for sellers</li>
+                <li>🚀 Promotional codes and discounts</li>
+                <li>🚀 Multi-currency support</li>
+                <li>🚀 Mobile app (React Native)</li>
+                <li>🚀 Social media integration</li>
+                <li>🚀 Automated inventory alerts</li>
+            </ul>
+        </div>
+        
+        <footer>
+            <p>&copy; 2025 E-Commerce Platform PRD | Version 1.0</p>
+            <p>Last Updated: November 2025</p>
+        </footer>
+    </div>
+    
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+        });
+    </script>
+</body>
+</html>
